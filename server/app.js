@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./routes/auth');
@@ -15,21 +14,53 @@ const watchlistRoutes = require('./routes/watchlist');
 const profileRoutes = require('./routes/profile');
 
 const app = express();
+
 const isProduction = process.env.NODE_ENV === 'production';
 
+/* -----------------------------
+   CORS
+----------------------------- */
+
 app.use(cors({
-  origin: isProduction ? false : 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL,
   credentials: true,
 }));
 
+/* -----------------------------
+   Health Check
+----------------------------- */
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'finova-api',
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+/* -----------------------------
+   Middleware
+----------------------------- */
+
 app.use(express.json({ limit: '10mb' }));
+
+/* -----------------------------
+   Rate Limiting
+----------------------------- */
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isProduction ? 200 : 1000,
-  message: { error: 'Too many requests, please try again later.' },
+  message: {
+    error: 'Too many requests, please try again later.',
+  },
 });
+
 app.use(limiter);
+
+/* -----------------------------
+   API Routes
+----------------------------- */
 
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
@@ -42,22 +73,26 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/profile', profileRoutes);
 
-if (isProduction) {
-  const clientDist = path.join(__dirname, '..', 'client', 'dist');
-  app.use(express.static(clientDist));
+/* -----------------------------
+   404 Handler
+----------------------------- */
 
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'));
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Route not found',
   });
-} else {
-  app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found' });
-  });
-}
+});
+
+/* -----------------------------
+   Global Error Handler
+----------------------------- */
 
 app.use((err, req, res, next) => {
   console.error('Global error:', err.stack);
-  res.status(500).json({ error: 'Internal server error' });
+
+  res.status(500).json({
+    error: 'Internal server error',
+  });
 });
 
 module.exports = app;

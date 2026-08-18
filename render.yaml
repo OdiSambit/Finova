@@ -2,40 +2,50 @@ services:
   - type: web
     name: finova
     runtime: node
-    plan: free
-    buildCommand: cd client && npm install && npm run build && cd ../server && npm install
-    startCommand: cd server && node server.js
+    plan: starter
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
+
       - key: DB_HOST
         fromDatabase:
           name: finova-db
           property: host
+
       - key: DB_PORT
         fromDatabase:
           name: finova-db
           property: port
+
       - key: DB_NAME
         fromDatabase:
           name: finova-db
           property: database
+
       - key: DB_USER
         fromDatabase:
           name: finova-db
           property: user
+
       - key: DB_PASSWORD
         fromDatabase:
           name: finova-db
           property: password
+
       - key: JWT_SECRET
         generateValue: true
+
       - key: JWT_EXPIRES_IN
         value: 7d
 
+      - key: FRONTEND_URL
+        sync: false
+
 databases:
   - name: finova-db
-    plan: free
+    plan: basic-256mb
     databaseName: finova
