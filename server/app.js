@@ -74,6 +74,21 @@ app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/profile', profileRoutes);
 
 /* -----------------------------
+   Static Assets (Production)
+----------------------------- */
+const path = require('path');
+if (isProduction) {
+  const distPath = path.join(__dirname, '../client/dist');
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
+/* -----------------------------
    404 Handler
 ----------------------------- */
 
